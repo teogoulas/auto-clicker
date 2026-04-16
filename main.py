@@ -8,22 +8,10 @@ pyautogui.FAILSAFE = True
 
 def resolve_window_offset(title: str) -> tuple[int, int]:
     """Return the top-left (x, y) of the first window whose title contains `title`."""
-    try:
-        import pygetwindow as gw
-    except ImportError:
-        sys.exit("pygetwindow not installed. Run: pip install pygetwindow")
-
-    matches = gw.getWindowsWithTitle(title)
-    if not matches:
-        available = [w.title for w in gw.getAllWindows() if w.title.strip()]
-        sys.exit(
-            f"No window found matching '{title}'.\n"
-            f"Available windows:\n  " + "\n  ".join(available[:20])
-        )
-
-    win = matches[0]
-    print(f"Window found: '{win.title}' at ({win.left}, {win.top}), size {win.width}x{win.height}")
-    return win.left, win.top
+    from window_utils import find_window
+    win = find_window(title)
+    print(f"Window found: '{win['app']} — {win['title']}' at ({win['x']}, {win['y']}), size {win['width']}x{win['height']}")
+    return win["x"], win["y"]
 
 
 def parse_args():

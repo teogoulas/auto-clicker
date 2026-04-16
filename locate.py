@@ -50,20 +50,16 @@ def capture_mode():
 
 def list_windows():
     """Print all visible window titles and their positions."""
-    try:
-        import pygetwindow as gw
-    except ImportError:
-        sys.exit("pygetwindow not installed. Run: pip install pygetwindow")
-
-    windows = [w for w in gw.getAllWindows() if w.title.strip()]
+    from window_utils import get_windows
+    windows = get_windows()
     if not windows:
         print("No windows found.")
         return
 
-    print(f"{'Title':<50} {'Left':>6} {'Top':>6} {'Width':>7} {'Height':>7}")
-    print("-" * 80)
+    print(f"{'App':<30} {'Title':<30} {'X':>6} {'Y':>6} {'Width':>7} {'Height':>7}")
+    print("-" * 90)
     for w in windows:
-        print(f"{w.title[:49]:<50} {w.left:>6} {w.top:>6} {w.width:>7} {w.height:>7}")
+        print(f"{w['app'][:29]:<30} {w['title'][:29]:<30} {w['x']:>6} {w['y']:>6} {w['width']:>7} {w['height']:>7}")
 
 
 def main():

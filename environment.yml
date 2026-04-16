@@ -1,0 +1,10 @@
+name: auto-clicker
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - pip:
+      - pyautogui==0.9.54
+      - Pillow==10.4.0

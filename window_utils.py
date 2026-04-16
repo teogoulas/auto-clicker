@@ -29,6 +29,7 @@ def get_windows() -> list[dict]:
             "y": int(bounds.get("Y", 0)),
             "width": width,
             "height": height,
+            "layer": w.get("kCGWindowLayer", 0),
         })
     return windows
 

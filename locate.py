@@ -12,15 +12,18 @@ pyautogui.FAILSAFE = False
 
 
 def window_at(x: int, y: int):
-    """Return the smallest window containing (x, y) — avoids large system overlays like the Dock."""
+    """Return the frontmost normal-layer window containing (x, y).
+
+    Quartz returns windows front-to-back. Layer 0 = normal app windows;
+    higher layers are system overlays (Dock, menu bar, etc.).
+    """
     from window_utils import get_windows
-    candidates = [
-        w for w in get_windows()
-        if w["x"] <= x < w["x"] + w["width"] and w["y"] <= y < w["y"] + w["height"]
-    ]
-    if not candidates:
-        return None
-    return min(candidates, key=lambda w: w["width"] * w["height"])
+    for w in get_windows():
+        if w["layer"] != 0:
+            continue
+        if w["x"] <= x < w["x"] + w["width"] and w["y"] <= y < w["y"] + w["height"]:
+            return w
+    return None
 
 
 def format_line(pos, r, g, b):

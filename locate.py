@@ -11,8 +11,26 @@ import pyautogui
 pyautogui.FAILSAFE = False
 
 
+def window_at(x: int, y: int):
+    """Return the topmost window containing (x, y), or None."""
+    from window_utils import get_windows
+    for w in get_windows():
+        if w["x"] <= x < w["x"] + w["width"] and w["y"] <= y < w["y"] + w["height"]:
+            return w
+    return None
+
+
+def format_line(pos, r, g, b):
+    win = window_at(pos.x, pos.y)
+    abs_part = f"abs=({pos.x},{pos.y})"
+    if win:
+        rx, ry = pos.x - win["x"], pos.y - win["y"]
+        name = win["app"]
+        return f"  {abs_part}  rel=({rx},{ry})  window='{name}'  rgb=({r},{g},{b})"
+    return f"  {abs_part}  rgb=({r},{g},{b})"
+
+
 def live_mode():
-    """Continuously print mouse position until Ctrl+C."""
     print("Live mode — move your mouse. Press Ctrl+C to stop.\n")
     prev = None
     try:
@@ -20,15 +38,14 @@ def live_mode():
             pos = pyautogui.position()
             if pos != prev:
                 r, g, b, *_ = pyautogui.screenshot().getpixel(pos)
-                print(f"\r  x={pos.x:<6} y={pos.y:<6} rgb=({r},{g},{b})    ", end="", flush=True)
+                print(f"\r{format_line(pos, r, g, b)}    ", end="", flush=True)
                 prev = pos
             time.sleep(0.05)
     except KeyboardInterrupt:
-        print(f"\n\nFinal position: x={prev.x} y={prev.y}")
+        print()
 
 
 def capture_mode():
-    """Press Enter to snapshot the current mouse position; Ctrl+C to finish."""
     print("Capture mode — position your mouse and press Enter to record. Ctrl+C to finish.\n")
     captured = []
     try:
@@ -36,20 +53,23 @@ def capture_mode():
             input("  Press Enter to capture current position...")
             pos = pyautogui.position()
             r, g, b, *_ = pyautogui.screenshot().getpixel(pos)
-            entry = f"x={pos.x} y={pos.y} rgb=({r},{g},{b})"
-            captured.append((pos.x, pos.y))
-            print(f"  Captured: {entry}\n")
+            print(f"{format_line(pos, r, g, b)}\n")
+            win = window_at(pos.x, pos.y)
+            captured.append((pos.x, pos.y, win))
     except KeyboardInterrupt:
         pass
 
     if captured:
-        print("\nCaptured coordinates (ready to use with main.py):")
-        for x, y in captured:
-            print(f"  python main.py {x} {y}")
+        print("\nReady-to-use commands:")
+        for x, y, win in captured:
+            if win:
+                rx, ry = x - win["x"], y - win["y"]
+                print(f'  python main.py {rx} {ry} --window "{win["app"]}"')
+            else:
+                print(f"  python main.py {x} {y}")
 
 
 def list_windows():
-    """Print all visible window titles and their positions."""
     from window_utils import get_windows
     windows = get_windows()
     if not windows:

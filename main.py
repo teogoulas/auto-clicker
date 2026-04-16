@@ -6,11 +6,10 @@ import pyautogui
 pyautogui.FAILSAFE = True
 
 
-def resolve_window_offset(title: str) -> tuple[int, int]:
-    """Return the top-left (x, y) of the first window whose title contains `title`."""
+def resolve_window_offset(title: str, index: int) -> tuple[int, int]:
     from window_utils import find_window
-    win = find_window(title)
-    print(f"Window found: '{win['app']} — {win['title']}' at ({win['x']}, {win['y']}), size {win['width']}x{win['height']}")
+    win = find_window(title, index)
+    print(f"Window: '{win['app']} — {win['title']}' at ({win['x']}, {win['y']}), size {win['width']}x{win['height']}")
     return win["x"], win["y"]
 
 
@@ -40,6 +39,10 @@ def parse_args():
         "--window", "-w", type=str, default=None,
         help="Target window title substring. x/y become relative to that window's top-left corner.",
     )
+    parser.add_argument(
+        "--window-index", type=int, default=0,
+        help="Which match to use when multiple windows share the same title (default: 0).",
+    )
     return parser.parse_args()
 
 
@@ -50,9 +53,9 @@ def click(x: int, y: int, button: str, double: bool) -> None:
         pyautogui.click(x, y, button=button)
 
 
-def run(x: int, y: int, interval: float, count: int, button: str, double: bool, window: str | None) -> None:
+def run(x: int, y: int, interval: float, count: int, button: str, double: bool, window: str | None, window_index: int) -> None:
     if window:
-        wx, wy = resolve_window_offset(window)
+        wx, wy = resolve_window_offset(window, window_index)
         x, y = wx + x, wy + y
 
     click_fn = "Double-click" if double else "Click"
@@ -88,6 +91,7 @@ def main():
         button=args.button,
         double=args.double,
         window=args.window,
+        window_index=args.window_index,
     )
 
 

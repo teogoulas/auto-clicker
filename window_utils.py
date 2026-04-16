@@ -33,16 +33,26 @@ def get_windows() -> list[dict]:
     return windows
 
 
-def find_window(title: str) -> dict:
-    """Return the first window whose app name or title contains `title` (case-insensitive)."""
+def find_window(title: str, index: int = 0) -> dict:
+    """Return the window at `index` among those whose app/title contains `title`."""
     needle = title.lower()
     windows = get_windows()
-    for w in windows:
-        if needle in w["app"].lower() or needle in w["title"].lower():
-            return w
+    matches = [w for w in windows if needle in w["app"].lower() or needle in w["title"].lower()]
 
-    apps = sorted(set(w["app"] for w in windows if w["app"]))
-    sys.exit(
-        f"No window found matching '{title}'.\n"
-        f"Available apps:\n  " + "\n  ".join(apps[:20])
-    )
+    if not matches:
+        apps = sorted(set(w["app"] for w in windows if w["app"]))
+        sys.exit(
+            f"No window found matching '{title}'.\n"
+            f"Available apps:\n  " + "\n  ".join(apps[:20])
+        )
+
+    if len(matches) > 1:
+        print(f"Multiple windows match '{title}':")
+        for i, w in enumerate(matches):
+            marker = " ◀ selected" if i == index else ""
+            print(f"  [{i}] {w['app']} — {w['title'] or '(no title)'} at ({w['x']}, {w['y']}){marker}")
+
+    if index >= len(matches):
+        sys.exit(f"--window-index {index} is out of range (found {len(matches)} match(es)).")
+
+    return matches[index]

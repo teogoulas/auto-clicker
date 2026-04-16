@@ -6,38 +6,51 @@ import pyautogui
 pyautogui.FAILSAFE = True
 
 
+def resolve_window_offset(title: str) -> tuple[int, int]:
+    """Return the top-left (x, y) of the first window whose title contains `title`."""
+    try:
+        import pygetwindow as gw
+    except ImportError:
+        sys.exit("pygetwindow not installed. Run: pip install pygetwindow")
+
+    matches = gw.getWindowsWithTitle(title)
+    if not matches:
+        available = [w.title for w in gw.getAllWindows() if w.title.strip()]
+        sys.exit(
+            f"No window found matching '{title}'.\n"
+            f"Available windows:\n  " + "\n  ".join(available[:20])
+        )
+
+    win = matches[0]
+    print(f"Window found: '{win.title}' at ({win.left}, {win.top}), size {win.width}x{win.height}")
+    return win.left, win.top
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Auto-clicker: repeatedly click a screen coordinate at a set interval."
     )
-    parser.add_argument("x", type=int, help="X coordinate to click")
-    parser.add_argument("y", type=int, help="Y coordinate to click")
+    parser.add_argument("x", type=int, help="X coordinate to click (absolute, or relative to --window)")
+    parser.add_argument("y", type=int, help="Y coordinate to click (absolute, or relative to --window)")
     parser.add_argument(
-        "--interval",
-        "-i",
-        type=float,
-        default=1.0,
+        "--interval", "-i", type=float, default=1.0,
         help="Seconds between clicks (default: 1.0)",
     )
     parser.add_argument(
-        "--count",
-        "-n",
-        type=int,
-        default=0,
+        "--count", "-n", type=int, default=0,
         help="Number of clicks (0 = unlimited, default: 0)",
     )
     parser.add_argument(
-        "--button",
-        "-b",
-        choices=["left", "right", "middle"],
-        default="left",
+        "--button", "-b", choices=["left", "right", "middle"], default="left",
         help="Mouse button to use (default: left)",
     )
     parser.add_argument(
-        "--double",
-        "-d",
-        action="store_true",
+        "--double", "-d", action="store_true",
         help="Double-click instead of single click",
+    )
+    parser.add_argument(
+        "--window", "-w", type=str, default=None,
+        help="Target window title substring. x/y become relative to that window's top-left corner.",
     )
     return parser.parse_args()
 
@@ -49,7 +62,11 @@ def click(x: int, y: int, button: str, double: bool) -> None:
         pyautogui.click(x, y, button=button)
 
 
-def run(x: int, y: int, interval: float, count: int, button: str, double: bool) -> None:
+def run(x: int, y: int, interval: float, count: int, button: str, double: bool, window: str | None) -> None:
+    if window:
+        wx, wy = resolve_window_offset(window)
+        x, y = wx + x, wy + y
+
     click_fn = "Double-click" if double else "Click"
     target = f"({x}, {y})"
     limit = f"{count} times" if count > 0 else "until stopped (Ctrl+C or move mouse to corner)"
@@ -82,6 +99,7 @@ def main():
         count=args.count,
         button=args.button,
         double=args.double,
+        window=args.window,
     )
 
 

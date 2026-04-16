@@ -19,7 +19,7 @@ def live_mode():
         while True:
             pos = pyautogui.position()
             if pos != prev:
-                r, g, b = pyautogui.screenshot().getpixel(pos)
+                r, g, b, *_ = pyautogui.screenshot().getpixel(pos)
                 print(f"\r  x={pos.x:<6} y={pos.y:<6} rgb=({r},{g},{b})    ", end="", flush=True)
                 prev = pos
             time.sleep(0.05)
@@ -35,7 +35,7 @@ def capture_mode():
         while True:
             input("  Press Enter to capture current position...")
             pos = pyautogui.position()
-            r, g, b = pyautogui.screenshot().getpixel(pos)
+            r, g, b, *_ = pyautogui.screenshot().getpixel(pos)
             entry = f"x={pos.x} y={pos.y} rgb=({r},{g},{b})"
             captured.append((pos.x, pos.y))
             print(f"  Captured: {entry}\n")

@@ -12,12 +12,15 @@ pyautogui.FAILSAFE = False
 
 
 def window_at(x: int, y: int):
-    """Return the topmost window containing (x, y), or None."""
+    """Return the smallest window containing (x, y) — avoids large system overlays like the Dock."""
     from window_utils import get_windows
-    for w in get_windows():
-        if w["x"] <= x < w["x"] + w["width"] and w["y"] <= y < w["y"] + w["height"]:
-            return w
-    return None
+    candidates = [
+        w for w in get_windows()
+        if w["x"] <= x < w["x"] + w["width"] and w["y"] <= y < w["y"] + w["height"]
+    ]
+    if not candidates:
+        return None
+    return min(candidates, key=lambda w: w["width"] * w["height"])
 
 
 def format_line(pos, r, g, b):

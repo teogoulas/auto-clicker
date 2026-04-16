@@ -33,11 +33,28 @@ def get_windows() -> list[dict]:
     return windows
 
 
+def _match_score(w: dict, needle: str) -> int:
+    """Higher = better match. 0 means no match."""
+    app = w["app"].lower()
+    title = w["title"].lower()
+    if app == needle:
+        return 3
+    if app.startswith(needle):
+        return 2
+    if needle in app or needle in title:
+        return 1
+    return 0
+
+
 def find_window(title: str, index: int = 0) -> dict:
-    """Return the window at `index` among those whose app/title contains `title`."""
+    """Return the window at `index` among those matching `title`, best matches first."""
     needle = title.lower()
     windows = get_windows()
-    matches = [w for w in windows if needle in w["app"].lower() or needle in w["title"].lower()]
+    matches = sorted(
+        [w for w in windows if _match_score(w, needle) > 0],
+        key=lambda w: _match_score(w, needle),
+        reverse=True,
+    )
 
     if not matches:
         apps = sorted(set(w["app"] for w in windows if w["app"]))

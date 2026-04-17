@@ -159,8 +159,9 @@ def run_clicks(x: int, y: int, interval: float, count: int, button: str, double:
         sys.exit(0)
 
     if deadline and time.monotonic() >= deadline:
+        from window_utils import close_hotkey
         print("\nTime's up — closing window.")
-        pyautogui.hotkey("command", "w")
+        pyautogui.hotkey(*close_hotkey())
 
     print(f"Done — {clicks_done} click(s) performed.")
 

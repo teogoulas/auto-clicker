@@ -1,16 +1,24 @@
-"""macOS window resolution via Quartz."""
+"""Window resolution — macOS via Quartz, Windows/Linux via pygetwindow."""
 import sys
+import platform
+
+_SYSTEM = platform.system()  # "Darwin", "Windows", "Linux"
 
 
 def get_windows() -> list[dict]:
-    """Return list of dicts with keys: title, app, x, y, width, height."""
+    """Return list of dicts with keys: app, title, x, y, width, height, layer."""
+    if _SYSTEM == "Darwin":
+        return _get_windows_mac()
+    return _get_windows_other()
+
+
+def _get_windows_mac() -> list[dict]:
     from Quartz import (
         CGWindowListCopyWindowInfo,
         kCGWindowListOptionOnScreenOnly,
         kCGWindowListExcludeDesktopElements,
         kCGNullWindowID,
     )
-
     raw = CGWindowListCopyWindowInfo(
         kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
         kCGNullWindowID,
@@ -34,8 +42,34 @@ def get_windows() -> list[dict]:
     return windows
 
 
+def _get_windows_other() -> list[dict]:
+    try:
+        import pygetwindow as gw
+    except ImportError:
+        sys.exit("pygetwindow is required on Windows/Linux. Run: pip install pygetwindow")
+
+    windows = []
+    for w in gw.getAllWindows():
+        if not w.title.strip() or w.width < 10 or w.height < 10:
+            continue
+        windows.append({
+            "app": w.title,   # pygetwindow doesn't separate app name from title
+            "title": w.title,
+            "x": w.left,
+            "y": w.top,
+            "width": w.width,
+            "height": w.height,
+            "layer": 0,       # no layer concept; all treated as normal windows
+        })
+    return windows
+
+
+def close_hotkey() -> tuple[str, str]:
+    """Return the (modifier, key) pair to close a window on the current platform."""
+    return ("command", "w") if _SYSTEM == "Darwin" else ("ctrl", "w")
+
+
 def _match_score(w: dict, needle: str) -> int:
-    """Higher = better match. 0 means no match."""
     app = w["app"].lower()
     title = w["title"].lower()
     if app == needle:

@@ -7,7 +7,7 @@ pyautogui.FAILSAFE = True
 
 
 # ---------------------------------------------------------------------------
-# locate subcommand
+# window helpers
 # ---------------------------------------------------------------------------
 
 def window_at(x: int, y: int):
@@ -20,11 +20,54 @@ def window_at(x: int, y: int):
     return None
 
 
-def format_line(pos, r, g, b):
-    win = window_at(pos.x, pos.y)
-    abs_part = f"abs=({pos.x},{pos.y})"
+def resolve_window_offset(title: str, index: int) -> tuple[int, int]:
+    from window_utils import find_window
+    win = find_window(title, index)
+    print(f"Window: '{win['app']} — {win['title']}' at ({win['x']}, {win['y']}), size {win['width']}x{win['height']}")
+    return win["x"], win["y"]
+
+
+# ---------------------------------------------------------------------------
+# target detection
+# ---------------------------------------------------------------------------
+
+def detect_next_click() -> tuple[int, int]:
+    """Block until the user clicks anywhere, return (x, y)."""
+    from pynput import mouse
+
+    print("Click on your target pixel to set it as the auto-click destination...")
+    result = {}
+
+    def on_click(x, y, button, pressed):
+        if pressed and button == mouse.Button.left:
+            result["pos"] = (int(x), int(y))
+            return False  # stop listener
+
+    with mouse.Listener(on_click=on_click) as listener:
+        listener.join()
+
+    x, y = result["pos"]
+    win = window_at(x, y)
     if win:
-        rx, ry = pos.x - win["x"], pos.y - win["y"]
+        rx, ry = x - win["x"], y - win["y"]
+        print(f"Target: abs=({x},{y})  rel=({rx},{ry})  window='{win['app']}'")
+    else:
+        print(f"Target: ({x},{y})")
+
+    print("Starting in 3 seconds... (move mouse to a corner to cancel)")
+    time.sleep(3)
+    return x, y
+
+
+# ---------------------------------------------------------------------------
+# locate subcommand
+# ---------------------------------------------------------------------------
+
+def format_line(x, y, r, g, b):
+    win = window_at(x, y)
+    abs_part = f"abs=({x},{y})"
+    if win:
+        rx, ry = x - win["x"], y - win["y"]
         return f"  {abs_part}  rel=({rx},{ry})  window='{win['app']}'  rgb=({r},{g},{b})"
     return f"  {abs_part}  rgb=({r},{g},{b})"
 
@@ -37,7 +80,7 @@ def locate_live():
             pos = pyautogui.position()
             if pos != prev:
                 r, g, b, *_ = pyautogui.screenshot().getpixel(pos)
-                print(f"\r{format_line(pos, r, g, b)}    ", end="", flush=True)
+                print(f"\r{format_line(pos.x, pos.y, r, g, b)}    ", end="", flush=True)
                 prev = pos
             time.sleep(0.05)
     except KeyboardInterrupt:
@@ -52,7 +95,7 @@ def locate_capture():
             input("  Press Enter to capture current position...")
             pos = pyautogui.position()
             r, g, b, *_ = pyautogui.screenshot().getpixel(pos)
-            print(f"{format_line(pos, r, g, b)}\n")
+            print(f"{format_line(pos.x, pos.y, r, g, b)}\n")
             captured.append((pos.x, pos.y, window_at(pos.x, pos.y)))
     except KeyboardInterrupt:
         pass
@@ -62,9 +105,9 @@ def locate_capture():
         for x, y, win in captured:
             if win:
                 rx, ry = x - win["x"], y - win["y"]
-                print(f'  python main.py click {rx} {ry} --window "{win["app"]}"')
+                print(f'  python main.py {rx} {ry} --window "{win["app"]}"')
             else:
-                print(f"  python main.py click {x} {y}")
+                print(f"  python main.py {x} {y}")
 
 
 def locate_windows():
@@ -89,15 +132,8 @@ def cmd_locate(args):
 
 
 # ---------------------------------------------------------------------------
-# click subcommand
+# click logic
 # ---------------------------------------------------------------------------
-
-def resolve_window_offset(title: str, index: int) -> tuple[int, int]:
-    from window_utils import find_window
-    win = find_window(title, index)
-    print(f"Window: '{win['app']} — {win['title']}' at ({win['x']}, {win['y']}), size {win['width']}x{win['height']}")
-    return win["x"], win["y"]
-
 
 def do_click(x: int, y: int, button: str, double: bool) -> None:
     if double:
@@ -106,30 +142,24 @@ def do_click(x: int, y: int, button: str, double: bool) -> None:
         pyautogui.click(x, y, button=button)
 
 
-def cmd_click(args):
-    x, y = args.x, args.y
-
-    if args.window:
-        wx, wy = resolve_window_offset(args.window, args.window_index)
-        x, y = wx + x, wy + y
-
-    click_fn = "Double-click" if args.double else "Click"
+def run_clicks(x: int, y: int, interval: float, count: int, button: str, double: bool, close_after: float | None):
+    click_fn = "Double-click" if double else "Click"
     target = f"({x}, {y})"
-    limit = f"{args.count} times" if args.count > 0 else "until stopped (Ctrl+C or move mouse to corner)"
-    close_msg = f" — window closes after {args.close_after} min" if args.close_after else ""
-    print(f"{click_fn} at {target} every {args.interval}s — {limit}{close_msg}")
+    limit = f"{count} times" if count > 0 else "until stopped (Ctrl+C or move mouse to corner)"
+    close_msg = f" — window closes after {close_after} min" if close_after else ""
+    print(f"{click_fn} at {target} every {interval}s — {limit}{close_msg}")
 
-    deadline = time.monotonic() + args.close_after * 60 if args.close_after else None
+    deadline = time.monotonic() + close_after * 60 if close_after else None
     clicks_done = 0
     try:
-        while args.count == 0 or clicks_done < args.count:
+        while count == 0 or clicks_done < count:
             if deadline and time.monotonic() >= deadline:
                 break
-            do_click(x, y, args.button, args.double)
+            do_click(x, y, button, double)
             clicks_done += 1
             print(f"  [{clicks_done}] clicked at {target}", flush=True)
-            if args.count == 0 or clicks_done < args.count:
-                time.sleep(args.interval)
+            if count == 0 or clicks_done < count:
+                time.sleep(interval)
     except pyautogui.FailSafeException:
         print("\nFail-safe triggered (mouse moved to corner). Stopping.")
         sys.exit(0)
@@ -144,36 +174,59 @@ def cmd_click(args):
     print(f"Done — {clicks_done} click(s) performed.")
 
 
+def cmd_click(args):
+    if args.x is not None and args.y is not None:
+        x, y = args.x, args.y
+        if args.window:
+            wx, wy = resolve_window_offset(args.window, args.window_index)
+            x, y = wx + x, wy + y
+    else:
+        x, y = detect_next_click()
+
+    run_clicks(x, y, args.interval, args.count, args.button, args.double, args.close_after)
+
+
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Auto-clicker with pixel/window discovery.")
-    sub = parser.add_subparsers(dest="cmd", required=True)
+    parser = argparse.ArgumentParser(
+        description="Auto-clicker. Run without x/y to click on your target and auto-detect it.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "examples:\n"
+            "  python main.py                              # click target to detect it, then start\n"
+            "  python main.py 926 659 --window Chrome      # use explicit coords\n"
+            "  python main.py locate                       # discover coordinates\n"
+            "  python main.py locate live                  # stream mouse position\n"
+            "  python main.py locate windows               # list open windows\n"
+        ),
+    )
+    sub = parser.add_subparsers(dest="cmd")
 
-    # locate
+    # locate subcommand
     p_locate = sub.add_parser("locate", help="Discover pixel coordinates and windows.")
     p_locate.add_argument(
         "mode", nargs="?", default="capture",
         choices=["capture", "live", "windows"],
-        help="capture (default): press Enter to record | live: stream position | windows: list windows",
+        help="capture (default) | live | windows",
     )
 
-    # click
-    p_click = sub.add_parser("click", help="Repeatedly click a coordinate.")
-    p_click.add_argument("x", type=int, help="X coordinate (absolute, or relative to --window)")
-    p_click.add_argument("y", type=int, help="Y coordinate (absolute, or relative to --window)")
-    p_click.add_argument("--interval", "-i", type=float, default=10.0, help="Seconds between clicks (default: 10)")
-    p_click.add_argument("--count", "-n", type=int, default=0, help="Total clicks, 0 = unlimited (default: 0)")
-    p_click.add_argument("--button", "-b", choices=["left", "right", "middle"], default="left")
-    p_click.add_argument("--double", "-d", action="store_true", help="Double-click")
-    p_click.add_argument("--window", "-w", type=str, default=None, help="Target window title substring")
-    p_click.add_argument("--window-index", type=int, default=0, help="Which match to use (default: 0)")
-    p_click.add_argument("--close-after", "-c", type=float, default=None, metavar="MINUTES",
-                         help="Close window with Cmd+W after this many minutes, then exit")
+    # click is the default — x and y are optional
+    parser.add_argument("x", type=int, nargs="?", default=None, help="X coordinate (optional — click to detect)")
+    parser.add_argument("y", type=int, nargs="?", default=None, help="Y coordinate (optional — click to detect)")
+    parser.add_argument("--interval", "-i", type=float, default=10.0, help="Seconds between clicks (default: 10)")
+    parser.add_argument("--count", "-n", type=int, default=0, help="Total clicks, 0 = unlimited (default: 0)")
+    parser.add_argument("--button", "-b", choices=["left", "right", "middle"], default="left")
+    parser.add_argument("--double", "-d", action="store_true", help="Double-click")
+    parser.add_argument("--window", "-w", type=str, default=None, help="Target window title substring")
+    parser.add_argument("--window-index", type=int, default=0, help="Which match to use when titles collide (default: 0)")
+    parser.add_argument("--close-after", "-c", type=float, default=None, metavar="MINUTES",
+                        help="Close window with Cmd+W after this many minutes, then exit")
 
     args = parser.parse_args()
+
     if args.cmd == "locate":
         cmd_locate(args)
     else:

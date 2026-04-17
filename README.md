@@ -16,6 +16,47 @@ conda activate auto-clicker
 
 ## Usage
 
+### Default mode — click to detect target
+
+Run the script without coordinates. It waits for you to click anywhere on screen, captures that position (and the window it belongs to), then starts auto-clicking after a 3-second countdown.
+
+```bash
+python main.py
+python main.py --interval 5 --close-after 30
+```
+
+```
+Click on your target pixel to set it as the auto-click destination...
+Target: abs=(1114,801)  rel=(926,659)  window='Google Chrome'
+Starting in 3 seconds... (move mouse to a corner to cancel)
+Click at (1114, 801) every 10.0s — until stopped
+```
+
+### Explicit coordinates
+
+Skip detection by passing x/y directly.
+
+```bash
+python main.py 926 659 --window "Chrome"
+python main.py 926 659 --window "Chrome" --close-after 30
+python main.py 926 659 --window "Chrome" --window-index 1
+```
+
+| Argument | Default | Description |
+|---|---|---|
+| `x`, `y` | — | Absolute coords, or relative to `--window` (omit to detect via click) |
+| `--interval`, `-i` | `10` | Seconds between clicks |
+| `--count`, `-n` | `0` | Total clicks (0 = unlimited) |
+| `--button`, `-b` | `left` | `left` / `right` / `middle` |
+| `--double`, `-d` | off | Double-click |
+| `--window`, `-w` | — | Window title substring; makes x/y relative to that window |
+| `--window-index` | `0` | Which match to use when multiple windows share the same title |
+| `--close-after`, `-c` | — | Close window with Cmd+W after this many **minutes**, then exit |
+
+Stop at any time with **Ctrl+C**, or move the mouse to **any screen corner** (fail-safe).
+
+---
+
 ### Discover coordinates — `locate`
 
 #### Capture mode (default)
@@ -26,11 +67,10 @@ python main.py locate
 ```
 
 ```
-Press Enter to capture current position...
   abs=(1114,801)  rel=(926,659)  window='Google Chrome'  rgb=(90,110,172)
 
 Ready-to-use commands:
-  python main.py click 926 659 --window "Google Chrome"
+  python main.py 926 659 --window "Google Chrome"
 ```
 
 #### Live mode
@@ -46,43 +86,6 @@ Lists all visible windows with screen coordinates — useful for picking a `--wi
 ```bash
 python main.py locate windows
 ```
-
----
-
-### Click — `click`
-
-```
-python main.py click <x> <y> [options]
-```
-
-| Argument | Default | Description |
-|---|---|---|
-| `x`, `y` | required | Absolute coords, or relative to `--window` |
-| `--interval`, `-i` | `10` | Seconds between clicks |
-| `--count`, `-n` | `0` | Total clicks (0 = unlimited) |
-| `--button`, `-b` | `left` | `left` / `right` / `middle` |
-| `--double`, `-d` | off | Double-click |
-| `--window`, `-w` | — | Window title substring; makes x/y relative to that window |
-| `--window-index` | `0` | Which match to use when multiple windows share the same title |
-| `--close-after`, `-c` | — | Close window with Cmd+W after this many **minutes**, then exit |
-
-**Examples**
-
-```bash
-# Click at absolute coords every 10 s (default interval)
-python main.py click 960 540
-
-# Click relative to a Chrome window, close it after 30 minutes
-python main.py click 926 659 --window "Chrome" --close-after 30
-
-# 10 right-clicks 0.5 s apart
-python main.py click 200 300 --count 10 --button right --interval 0.5
-
-# Target the second matching Chrome window
-python main.py click 926 659 --window "Chrome" --window-index 1
-```
-
-Stop at any time with **Ctrl+C**, or move the mouse to **any screen corner** (fail-safe).
 
 ---
 

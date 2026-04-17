@@ -33,13 +33,25 @@ def resolve_window_offset(title: str, index: int) -> tuple[int, int]:
 
 def detect_next_click() -> tuple[int, int]:
     """Block until the user clicks anywhere, return (x, y)."""
+    import threading
     from pynput import mouse
 
     print("Click on your target pixel to set it as the auto-click destination...")
     result = {}
 
+    def show_permissions_hint():
+        print(
+            "\nNo click detected — pynput needs Accessibility permission on macOS.\n"
+            "  System Settings → Privacy & Security → Accessibility → enable Terminal\n"
+            "Then re-run the script."
+        )
+
+    hint = threading.Timer(4.0, show_permissions_hint)
+    hint.start()
+
     def on_click(x, y, button, pressed):
         if pressed and button == mouse.Button.left:
+            hint.cancel()
             result["pos"] = (int(x), int(y))
             return False  # stop listener
 
@@ -216,13 +228,13 @@ def main():
     # click is the default — x and y are optional
     parser.add_argument("x", type=int, nargs="?", default=None, help="X coordinate (optional — click to detect)")
     parser.add_argument("y", type=int, nargs="?", default=None, help="Y coordinate (optional — click to detect)")
-    parser.add_argument("--interval", "-i", type=float, default=10.0, help="Seconds between clicks (default: 10)")
+    parser.add_argument("--interval", "-i", type=float, default=15.0, help="Seconds between clicks (default: 10)")
     parser.add_argument("--count", "-n", type=int, default=0, help="Total clicks, 0 = unlimited (default: 0)")
     parser.add_argument("--button", "-b", choices=["left", "right", "middle"], default="left")
     parser.add_argument("--double", "-d", action="store_true", help="Double-click")
     parser.add_argument("--window", "-w", type=str, default=None, help="Target window title substring")
     parser.add_argument("--window-index", type=int, default=0, help="Which match to use when titles collide (default: 0)")
-    parser.add_argument("--close-after", "-c", type=float, default=None, metavar="MINUTES",
+    parser.add_argument("--close-after", "-c", type=float, default=30, metavar="MINUTES",
                         help="Close window with Cmd+W after this many minutes, then exit")
 
     args = parser.parse_args()

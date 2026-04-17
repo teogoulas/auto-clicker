@@ -32,33 +32,12 @@ def resolve_window_offset(title: str, index: int) -> tuple[int, int]:
 # ---------------------------------------------------------------------------
 
 def detect_next_click() -> tuple[int, int]:
-    """Block until the user clicks anywhere, return (x, y)."""
-    import threading
-    from pynput import mouse
+    """Ask the user to hover over the target and press Enter, then return (x, y)."""
+    print("Move your mouse to the target pixel and press Enter...")
+    input()
+    pos = pyautogui.position()
+    x, y = pos.x, pos.y
 
-    print("Click on your target pixel to set it as the auto-click destination...")
-    result = {}
-
-    def show_permissions_hint():
-        print(
-            "\nNo click detected — pynput needs Accessibility permission on macOS.\n"
-            "  System Settings → Privacy & Security → Accessibility → enable Terminal\n"
-            "Then re-run the script."
-        )
-
-    hint = threading.Timer(4.0, show_permissions_hint)
-    hint.start()
-
-    def on_click(x, y, button, pressed):
-        if pressed and button == mouse.Button.left:
-            hint.cancel()
-            result["pos"] = (int(x), int(y))
-            return False  # stop listener
-
-    with mouse.Listener(on_click=on_click) as listener:
-        listener.join()
-
-    x, y = result["pos"]
     win = window_at(x, y)
     if win:
         rx, ry = x - win["x"], y - win["y"]

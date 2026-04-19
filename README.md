@@ -1,16 +1,73 @@
 # auto-clicker
 
-Repeatedly click a screen coordinate at a configurable interval. Supports window-relative targeting and interactive pixel discovery — all from a single script.
+Two tools in one repo:
+
+- **`scraper.py`** — Playwright-based automator for the Aegean College e-learning platform. Logs in, navigates to a course, and cycles through slideshow slides automatically.
+- **`main.py`** — General-purpose auto-clicker for repeating mouse clicks at a configurable interval.
 
 ## Setup
 
 ```bash
 conda env create -f environment.yml
 conda activate auto-clicker
+playwright install chromium
 ```
 
 > **macOS**: grant Terminal (or your IDE) accessibility permissions in  
 > *System Preferences → Privacy & Security → Accessibility*.
+
+---
+
+## `scraper.py` — E-learning automator
+
+Logs into `ops.aegeancollege.gr`, navigates to your course, opens a SCORM slideshow, and keeps clicking **Next** on a timer — across multiple login/logout cycles.
+
+**Compatible with macOS, Linux, and Windows.** On macOS the display is kept awake automatically via `caffeinate`. On Linux, `xdg-screensaver` is used if available. On Windows, disable sleep manually via your power settings.
+
+### Usage
+
+```bash
+python scraper.py \
+  --username YOUR_EMAIL \
+  --password YOUR_PASSWORD \
+  --section "AI Training" \
+  --subsection "Ενότητα 1"
+```
+
+| Argument | Default | Description |
+|---|---|---|
+| `--username` | required | Login e-mail or username |
+| `--password` | required | Login password |
+| `--section` | required | Section name to expand — case-insensitive substring match |
+| `--subsection` | required | Sub-section (activity) to open — case-insensitive substring match |
+| `--next-interval` | `30` | Seconds between each **Next** click in the slideshow |
+| `--cycle-interval` | `60` | Minutes per cycle before logging out and back in |
+| `--cycles` | `4` | Total number of login/logout cycles to run |
+
+### Example
+
+```bash
+python scraper.py \
+  --username student@example.com \
+  --password secret \
+  --section "AI Training - Γενικα για Τεχνητή Νοημοσύνη" \
+  --subsection "Ενότητα 1" \
+  --next-interval 45 \
+  --cycle-interval 90 \
+  --cycles 6
+```
+
+### How it works
+
+1. Opens a Chromium browser window (visible, not headless).
+2. Logs into `ops.aegeancollege.gr`.
+3. Navigates to `aegean.edu-elearning.gr/my/courses.php` and clicks the matching course card.
+4. Finds and expands the matching section, then clicks the matching sub-section.
+5. Waits for the SCORM slideshow popup and mutes all audio via JavaScript.
+6. Clicks **Next** every `--next-interval` seconds until the cycle time expires.
+7. Closes the slideshow, logs out, and repeats for the configured number of cycles.
+
+---
 
 ---
 

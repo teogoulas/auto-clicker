@@ -1,4 +1,5 @@
 import argparse
+import platform
 import subprocess
 import time
 
@@ -254,7 +255,16 @@ def logout(page: Page) -> None:
 def main() -> None:
     args = parse_args()
 
-    caffeinate = subprocess.Popen(["caffeinate", "-d"])
+    system = platform.system()
+    if system == "Darwin":
+        keep_awake = subprocess.Popen(["caffeinate", "-d"])
+    elif system == "Linux":
+        try:
+            keep_awake = subprocess.Popen(["xdg-screensaver", "reset"])
+        except FileNotFoundError:
+            keep_awake = None
+    else:
+        keep_awake = None  # Windows: no built-in equivalent needed; set power plan manually
     try:
         with sync_playwright() as pw:
             browser = pw.chromium.launch(headless=False, slow_mo=200)
@@ -281,7 +291,8 @@ def main() -> None:
             browser.close()
             print("\nAll cycles complete.")
     finally:
-        caffeinate.terminate()
+        if keep_awake is not None:
+            keep_awake.terminate()
 
 
 if __name__ == "__main__":

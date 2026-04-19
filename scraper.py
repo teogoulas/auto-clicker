@@ -1,4 +1,5 @@
 import argparse
+import subprocess
 import time
 
 from playwright.sync_api import sync_playwright, Page, BrowserContext, TimeoutError as PlaywrightTimeoutError
@@ -50,15 +51,12 @@ def navigate_to_course(page: Page) -> None:
     page.get_by_text("Άνοιγμα μαθημάτων").first.click()
     page.wait_for_load_state("networkidle")
 
-    print("[nav] Switching to 'Τα μαθήματα μου'...")
-    page.get_by_text("Τα μαθήματα μου").first.click()
+    print("[nav] Switching to 'Τα μαθήματά μου'...")
+    page.get_by_text("Τα μαθήματά μου").first.click()
     page.wait_for_load_state("networkidle")
 
     print("[nav] Clicking course card...")
-    page.locator(
-        "a, [class*='course'], [class*='card']",
-        has_text="Εφαρμογές Τεχνητής Νοημοσύνης",
-    ).first.click()
+    page.locator("a").filter(has_text="Εφαρμογές Τεχνητής Νοημοσύνης").first.click()
     page.wait_for_load_state("networkidle")
     print("[nav] On course page.")
 
@@ -277,30 +275,34 @@ def logout(page: Page) -> None:
 def main() -> None:
     args = parse_args()
 
-    with sync_playwright() as pw:
-        browser = pw.chromium.launch(headless=False, slow_mo=200)
-        context = browser.new_context()
-        page = context.new_page()
-        page.set_default_timeout(60_000)
+    caffeinate = subprocess.Popen(["caffeinate", "-d"])
+    try:
+        with sync_playwright() as pw:
+            browser = pw.chromium.launch(headless=False, slow_mo=200)
+            context = browser.new_context()
+            page = context.new_page()
+            page.set_default_timeout(60_000)
 
-        for cycle_num in range(1, args.cycles + 1):
-            print(f"\n=== Cycle {cycle_num}/{args.cycles} ===")
-            deadline = time.monotonic() + args.cycle_interval * 60
+            for cycle_num in range(1, args.cycles + 1):
+                print(f"\n=== Cycle {cycle_num}/{args.cycles} ===")
+                deadline = time.monotonic() + args.cycle_interval * 60
 
-            login(page, args.username, args.password)
-            navigate_to_course(page)
-            expand_section(page, args.section)
-            open_subsection(page, args.subsection)
-            slide_page = enter_lesson(page, context)
-            slide_page.set_default_timeout(60_000)
+                login(page, args.username, args.password)
+                navigate_to_course(page)
+                expand_section(page, args.section)
+                open_subsection(page, args.subsection)
+                slide_page = enter_lesson(page, context)
+                slide_page.set_default_timeout(60_000)
 
-            run_slideshow(slide_page, args.next_interval, deadline)
+                run_slideshow(slide_page, args.next_interval, deadline)
 
-            slide_page.close()
-            logout(page)
+                slide_page.close()
+                logout(page)
 
-        browser.close()
-        print("\nAll cycles complete.")
+            browser.close()
+            print("\nAll cycles complete.")
+    finally:
+        caffeinate.terminate()
 
 
 if __name__ == "__main__":

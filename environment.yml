@@ -9,3 +9,4 @@ dependencies:
       - pyautogui==0.9.54
       - Pillow==10.4.0
       - pygetwindow==0.0.9  # Windows/Linux only; not used on macOS
+      - playwright>=1.44.0

@@ -244,11 +244,13 @@ def logout(page: Page) -> None:
     page.wait_for_load_state("networkidle")
 
     print("[logout] Clicking avatar/profile menu...")
-    page.locator("[onclick*='toggleMenuItem']").last.click(timeout=10_000)
+    toggle = page.locator("[onclick*='toggleMenuItem']").filter(has=page.locator("img")).first
+    toggle.scroll_into_view_if_needed(timeout=10_000)
+    toggle.click(timeout=10_000, force=True)
     page.wait_for_timeout(500)
 
     print("[logout] Clicking logout button...")
-    page.locator("button.menu-logout").first.click()
+    page.locator("button.menu-logout").first.click(force=True)
     page.wait_for_load_state("networkidle")
     print("[logout] Logged out.")
 

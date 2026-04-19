@@ -223,53 +223,18 @@ def run_slideshow(slide_page: Page, next_interval: float, deadline: float) -> No
 
 
 def logout(page: Page) -> None:
-    print("[logout] Navigating to home to log out...")
-    page.goto("https://ops.aegeancollege.gr/login?returnUrl=%2f")
+    print("[logout] Navigating to portal home...")
+    page.goto("https://ops.aegeancollege.gr/")
     page.wait_for_load_state("networkidle")
 
-    # If already on the logged-in home page, find the avatar/user-menu dropdown
-    dropdown_selectors = [
-        "[class*='avatar']",
-        "[class*='user-menu']",
-        "[class*='usermenu']",
-        "[class*='profile']",
-        "[data-toggle='dropdown']",
-        ".dropdown-toggle",
-    ]
-    clicked = False
-    for sel in dropdown_selectors:
-        try:
-            page.locator(sel).last.click(timeout=3000)
-            page.wait_for_timeout(500)
-            clicked = True
-            break
-        except Exception:
-            pass
+    print("[logout] Clicking avatar/profile menu...")
+    page.locator("header img, header [class*='avatar'], header [class*='profile']").last.click(timeout=10_000)
+    page.wait_for_timeout(500)
 
-    if clicked:
-        try:
-            page.get_by_text("Αποσύνδεση").first.click()
-            page.wait_for_load_state("networkidle")
-            print("[logout] Logged out.")
-            return
-        except Exception:
-            pass
-
-    # Fallback: try a direct logout URL (common in Moodle-based systems)
-    for logout_url in [
-        "https://ops.aegeancollege.gr/login/logout.php",
-        "https://ops.aegeancollege.gr/logout",
-    ]:
-        try:
-            page.goto(logout_url)
-            page.wait_for_load_state("networkidle")
-            if "login" in page.url.lower():
-                print("[logout] Logged out via direct URL.")
-                return
-        except Exception:
-            pass
-
-    print("[logout] Warning: could not confirm logout. Continuing anyway.")
+    print("[logout] Clicking 'Αποσύνδεση'...")
+    page.get_by_text("Αποσύνδεση").first.click()
+    page.wait_for_load_state("networkidle")
+    print("[logout] Logged out.")
 
 
 def main() -> None:

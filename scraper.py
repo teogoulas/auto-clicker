@@ -136,26 +136,40 @@ def enter_lesson(page: Page, context: BrowserContext) -> Page:
 
 def _play_and_mute(slide_page: Page) -> None:
     """Attempt to play and mute video via JS across all frames, then via UI buttons."""
-    js = "document.querySelectorAll('video').forEach(v => { v.muted = true; try { v.play(); } catch(e) {} })"
+    js = """
+        document.querySelectorAll('video, audio').forEach(v => {
+            v.muted = true;
+            v.volume = 0;
+            try { v.play(); } catch(e) {}
+        });
+    """
     for frame in slide_page.frames:
         try:
             frame.evaluate(js)
         except Exception:
             pass
 
-    # Click play/mute buttons as fallback
+    # Click play/mute buttons — try broad selectors across all frames
     play_selectors = [
         "button[title*='Play' i]",
         "[class*='play-button']",
         "[aria-label*='play' i]",
         "[class*='playBtn']",
         "[class*='PlayButton']",
+        "button:nth-child(1)",  # first button in player controls
     ]
     mute_selectors = [
         "button[title*='Mute' i]",
+        "button[title*='Sound' i]",
+        "button[title*='Audio' i]",
         "[aria-label*='mute' i]",
+        "[aria-label*='sound' i]",
+        "[aria-label*='audio' i]",
         "[class*='mute']",
         "[class*='volume']",
+        "[class*='sound']",
+        "[class*='audio']",
+        "button:nth-child(2)",  # second button in player controls (speaker icon)
     ]
     for frame in slide_page.frames:
         for sel in play_selectors:

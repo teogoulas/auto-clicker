@@ -160,6 +160,8 @@ def _play_and_mute(slide_page: Page) -> None:
         "button:nth-child(1)",  # first button in player controls
     ]
     mute_selectors = [
+        "[class*='collapsable-button']",
+        "[class*='collapsed-control']",
         "button[title*='Mute' i]",
         "button[title*='Sound' i]",
         "button[title*='Audio' i]",
@@ -170,7 +172,6 @@ def _play_and_mute(slide_page: Page) -> None:
         "[class*='volume']",
         "[class*='sound']",
         "[class*='audio']",
-        "button:nth-child(2)",  # second button in player controls (speaker icon)
     ]
     for frame in slide_page.frames:
         for sel in play_selectors:

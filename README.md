@@ -5,6 +5,35 @@ Two tools in one repo:
 - **`scraper.py`** — Playwright-based automator for the Aegean College e-learning platform. Logs in, navigates to a course, and cycles through slideshow slides automatically.
 - **`main.py`** — General-purpose auto-clicker for repeating mouse clicks at a configurable interval.
 
+## Prerequisites — Install Miniconda
+
+If you don't have `conda` installed, install Miniconda (a minimal conda distribution):
+
+**macOS**
+```bash
+brew install --cask miniconda
+```
+Or download the installer manually from https://docs.conda.io/en/latest/miniconda.html, then run:
+```bash
+bash ~/Downloads/Miniconda3-latest-MacOSX-arm64.sh   # Apple Silicon
+# or
+bash ~/Downloads/Miniconda3-latest-MacOSX-x86_64.sh  # Intel
+```
+
+**Linux**
+```bash
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+Follow the prompts, then restart your terminal (or run `source ~/.bashrc`).
+
+**Windows**
+
+Download and run the installer from https://docs.conda.io/en/latest/miniconda.html.  
+Use **Miniconda3 Windows 64-bit**. During installation, check *"Add Miniconda3 to my PATH"* (or use the **Anaconda Prompt** that gets installed).
+
+---
+
 ## Setup
 
 ```bash

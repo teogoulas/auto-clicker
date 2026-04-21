@@ -244,7 +244,10 @@ def logout(page: Page) -> None:
     page.wait_for_load_state("networkidle")
 
     print("[logout] Clicking avatar/profile menu...")
-    toggle = page.locator("[onclick*='toggleMenuItem']").filter(has=page.locator("img")).first
+    # Try with img child first, then fall back to any toggleMenuItem element
+    toggle_with_img = page.locator("[onclick*='toggleMenuItem']").filter(has=page.locator("img"))
+    toggle_any = page.locator("[onclick*='toggleMenuItem']")
+    toggle = toggle_with_img.first if toggle_with_img.count() > 0 else toggle_any.last
     toggle.scroll_into_view_if_needed(timeout=10_000)
     toggle.click(timeout=10_000, force=True)
     page.wait_for_timeout(500)

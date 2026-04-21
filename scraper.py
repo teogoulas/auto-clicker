@@ -253,7 +253,10 @@ def logout(page: Page) -> None:
     page.wait_for_timeout(500)
 
     print("[logout] Clicking logout button...")
-    page.locator("button.menu-logout").first.click(force=True)
+    # Wait for dropdown to render; try button.menu-logout then any logout-labelled item
+    page.wait_for_timeout(1000)
+    logout_btn = page.locator("button.menu-logout, a.menu-logout, [class*='logout'], a:has-text('Logout'), a:has-text('Log out'), button:has-text('Logout'), button:has-text('Log out')")
+    logout_btn.first.click(force=True, timeout=15_000)
     page.wait_for_load_state("networkidle")
     print("[logout] Logged out.")
 

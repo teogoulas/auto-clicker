@@ -243,20 +243,19 @@ def logout(page: Page) -> None:
     page.goto("https://ops.aegeancollege.gr/")
     page.wait_for_load_state("networkidle")
 
-    print("[logout] Clicking avatar/profile menu...")
-    # Try with img child first, then fall back to any toggleMenuItem element
-    toggle_with_img = page.locator("[onclick*='toggleMenuItem']").filter(has=page.locator("img"))
-    toggle_any = page.locator("[onclick*='toggleMenuItem']")
-    toggle = toggle_with_img.first if toggle_with_img.count() > 0 else toggle_any.last
-    toggle.scroll_into_view_if_needed(timeout=10_000)
-    toggle.click(timeout=10_000, force=True)
-    page.wait_for_timeout(500)
-
-    print("[logout] Clicking logout button...")
-    # Wait for dropdown to render; try button.menu-logout then any logout-labelled item
-    page.wait_for_timeout(1000)
-    logout_btn = page.locator("button.menu-logout, a.menu-logout, [class*='logout'], a:has-text('Logout'), a:has-text('Log out'), button:has-text('Logout'), button:has-text('Log out')")
-    logout_btn.first.click(force=True, timeout=15_000)
+    print("[logout] Submitting logout form directly...")
+    # form.menu-logout-form is always in the DOM; submit it without opening the dropdown
+    submitted = page.evaluate("() => { const f = document.querySelector('form.menu-logout-form'); if (f) { f.submit(); return true; } return false; }")
+    if not submitted:
+        # Fallback: open avatar dropdown then click the button
+        print("[logout] Form not found, falling back to dropdown click...")
+        toggle_with_img = page.locator("[onclick*='toggleMenuItem']").filter(has=page.locator("img"))
+        toggle_any = page.locator("[onclick*='toggleMenuItem']")
+        toggle = toggle_with_img.first if toggle_with_img.count() > 0 else toggle_any.last
+        toggle.scroll_into_view_if_needed(timeout=10_000)
+        toggle.click(timeout=10_000, force=True)
+        page.wait_for_timeout(1000)
+        page.locator("button.menu-logout").first.click(force=True, timeout=15_000)
     page.wait_for_load_state("networkidle")
     print("[logout] Logged out.")
 

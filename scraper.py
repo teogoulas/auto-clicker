@@ -48,13 +48,24 @@ def navigate_to_course(page: Page) -> None:
     page.get_by_text("Κατάρτιση", exact=True).first.click()
     page.wait_for_load_state("networkidle")
 
-    print("[nav] Clicking 'Άνοιγμα μαθημάτων'...")
-    page.get_by_text("Άνοιγμα μαθημάτων").first.click()
-    page.wait_for_load_state("networkidle")
+    for attempt in range(1, 4):
+        print(f"[nav] Clicking 'Άνοιγμα μαθημάτων' (attempt {attempt})...")
+        page.get_by_text("Άνοιγμα μαθημάτων").first.click()
+        # Wait for the popup/splash to open and close, then for the redirect to settle
+        page.wait_for_load_state("networkidle")
+        page.wait_for_timeout(3000)
+        page.wait_for_load_state("networkidle")
 
-    print("[nav] Switching to 'Τα μαθήματά μου'...")
-    page.get_by_text("Τα μαθήματά μου").first.click()
-    page.wait_for_load_state("networkidle")
+        try:
+            print("[nav] Switching to 'Τα μαθήματά μου'...")
+            page.get_by_text("Τα μαθήματά μου").first.click(timeout=8_000)
+            page.wait_for_load_state("networkidle")
+            break
+        except PlaywrightTimeoutError:
+            if attempt < 3:
+                print("[nav] Redirect didn't land — retrying 'Άνοιγμα μαθημάτων'...")
+            else:
+                print("[nav] 'Τα μαθήματά μου' tab not clickable — already active, continuing.")
 
     print("[nav] Clicking course card...")
     page.locator("a").filter(has_text="Εφαρμογές Τεχνητής Νοημοσύνης").first.click()

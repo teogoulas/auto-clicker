@@ -86,17 +86,24 @@ def expand_section(page: Page, section_text: str) -> None:
         "[aria-expanded]"
     ).all()
 
+    matches = []
     for el in candidates:
         try:
             text = el.inner_text(timeout=1000).strip()
         except Exception:
             continue
         if needle in text.lower():
-            print(f"[section] Found: '{text}' — clicking to expand...")
-            el.scroll_into_view_if_needed(timeout=3_000)
-            el.click()
-            page.wait_for_timeout(800)
-            return
+            matches.append((len(text), text, el))
+
+    if matches:
+        # Prefer the shortest match — avoids huge container elements
+        matches.sort(key=lambda x: x[0])
+        _, text, el = matches[0]
+        print(f"[section] Found: '{text[:120]}' — clicking to expand...")
+        el.scroll_into_view_if_needed(timeout=3_000)
+        el.click()
+        page.wait_for_timeout(1500)
+        return
 
     raise ValueError(
         f"Section '{section_text}' not found on {page.url}\n"

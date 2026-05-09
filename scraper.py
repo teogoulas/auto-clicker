@@ -93,6 +93,7 @@ def expand_section(page: Page, section_text: str) -> None:
             continue
         if needle in text.lower():
             print(f"[section] Found: '{text}' — clicking to expand...")
+            el.scroll_into_view_if_needed(timeout=3_000)
             el.click()
             page.wait_for_timeout(800)
             return
@@ -103,7 +104,8 @@ def expand_section(page: Page, section_text: str) -> None:
     )
 
 
-def open_subsection(page: Page, subsection_text: str) -> None:
+def open_subsection(page: Page, subsection_text: str, context: BrowserContext) -> "Page | None":
+    """Click subsection link. Returns a new popup Page if SCORM opened directly, else None."""
     print(f"[subsection] Looking for subsection: '{subsection_text}'...")
     needle = subsection_text.lower()
 
@@ -120,9 +122,18 @@ def open_subsection(page: Page, subsection_text: str) -> None:
             continue
         if needle in text.lower():
             print(f"[subsection] Found: '{text}' — clicking...")
-            el.click()
-            page.wait_for_load_state("networkidle")
-            return
+            try:
+                el.scroll_into_view_if_needed(timeout=3_000)
+                with context.expect_page(timeout=5_000) as new_page_info:
+                    el.click()
+                popup = new_page_info.value
+                popup.wait_for_load_state("domcontentloaded")
+                print(f"[subsection] SCORM popup opened directly: {popup.url}")
+                return popup
+            except PlaywrightTimeoutError:
+                # No popup — regular page navigation
+                page.wait_for_load_state("networkidle")
+                return None
 
     raise ValueError(
         f"Subsection '{subsection_text}' not found on {page.url}\n"
@@ -285,8 +296,11 @@ def main() -> None:
                 login(page, args.username, args.password)
                 navigate_to_course(page)
                 expand_section(page, args.section)
-                open_subsection(page, args.subsection)
-                slide_page = enter_lesson(page, context)
+                popup = open_subsection(page, args.subsection, context)
+                if popup is not None:
+                    slide_page = popup
+                else:
+                    slide_page = enter_lesson(page, context)
                 slide_page.set_default_timeout(60_000)
 
                 run_slideshow(slide_page, args.next_interval, deadline)

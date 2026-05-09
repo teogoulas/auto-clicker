@@ -142,15 +142,51 @@ def open_subsection(page: Page, subsection_text: str, context: BrowserContext) -
 
 
 def enter_lesson(page: Page, context: BrowserContext) -> Page:
-    print("[lesson] Clicking 'Είσοδος/Σύνδεση' and waiting for slideshow window...")
-    try:
-        with context.expect_page(timeout=15_000) as new_page_info:
-            page.get_by_text("Είσοδος/Σύνδεση").first.click()
-        slide_page = new_page_info.value
-    except PlaywrightTimeoutError:
+    print(f"[lesson] On page: {page.url}")
+    # Print visible button/link text to help diagnose unexpected pages
+    visible_texts = []
+    for sel in ["button", "a.btn", "input[type='submit']", "input[type='button']"]:
+        for el in page.locator(sel).all():
+            try:
+                t = el.inner_text(timeout=500).strip()
+                if t:
+                    visible_texts.append(t)
+            except Exception:
+                pass
+    print(f"[lesson] Visible buttons/links: {visible_texts[:20]}")
+
+    enter_texts = [
+        "Είσοδος/Σύνδεση",
+        "Είσοδος",
+        "Σύνδεση",
+        "Εκκίνηση",
+        "Έναρξη",
+        "Συνέχεια",
+        "Enter",
+        "Launch",
+        "Start",
+        "Preview",
+    ]
+    clicked = False
+    for text in enter_texts:
+        try:
+            btn = page.get_by_text(text, exact=True).first
+            if btn.is_visible(timeout=2_000):
+                print(f"[lesson] Clicking '{text}'...")
+                with context.expect_page(timeout=15_000) as new_page_info:
+                    btn.click()
+                slide_page = new_page_info.value
+                clicked = True
+                break
+        except PlaywrightTimeoutError:
+            continue
+        except Exception:
+            continue
+
+    if not clicked:
         raise RuntimeError(
-            "Slideshow window did not open after clicking 'Είσοδος/Σύνδεση'. "
-            "Check that the subsection was opened correctly."
+            f"No known enter button found on {page.url}. "
+            f"Visible buttons: {visible_texts[:20]}"
         )
     slide_page.wait_for_load_state("domcontentloaded")
     print(f"[lesson] Slideshow opened: {slide_page.url}")
